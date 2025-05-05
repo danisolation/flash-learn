@@ -1,24 +1,42 @@
-"use client"
-import Link from "next/link"
-import { ArrowLeft, BookOpen } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useFlashcards } from "@/components/flashcard-provider"
+"use client";
+import Link from "next/link";
+import { ArrowLeft, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useFlashcards } from "@/components/flashcard-provider";
 
-// Đảm bảo hiển thị tiến độ chính xác trên trang danh sách bộ thẻ
+// Sửa hàm tính toán tiến độ trong StudyPage
 export default function StudyPage() {
-  const { decks } = useFlashcards()
+  const { decks } = useFlashcards();
 
   // Tính toán lại tiến độ cho mỗi bộ thẻ để đảm bảo hiển thị chính xác
   const decksWithUpdatedProgress = decks.map((deck) => {
-    const totalCards = deck.cards.length
-    const knownCards = deck.cards.filter((card) => card.status === "known").length
-    const progress = totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0
+    const totalCards = deck.cards.length;
+    const knownCards = deck.cards.filter(
+      (card) => card.status === "known"
+    ).length;
+    const progress =
+      totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
+
+    // Log để debug
+    console.log(
+      `Study Page - Deck ${deck.name}: ${knownCards}/${totalCards} thẻ đã thuộc (${progress}%)`
+    );
+
     return {
       ...deck,
       progress,
-    }
-  })
+      knownCount: knownCards,
+      totalCount: totalCards,
+    };
+  });
 
   return (
     <main className="container max-w-3xl mx-auto px-4 py-8">
@@ -45,16 +63,26 @@ export default function StudyPage() {
             <Card key={deck.id}>
               <CardHeader className="pb-2">
                 <CardTitle>{deck.name}</CardTitle>
-                <CardDescription>{deck.description || "Không có mô tả"}</CardDescription>
+                <CardDescription>
+                  {deck.description || "Không có mô tả"}
+                </CardDescription>
               </CardHeader>
               <CardContent className="pb-2">
-                <p className="text-sm text-muted-foreground">{deck.cards.length} thẻ</p>
+                <p className="text-sm text-muted-foreground">
+                  {deck.cards.length} thẻ
+                </p>
                 {deck.progress !== undefined && (
                   <div className="mt-2">
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary rounded-full" style={{ width: `${deck.progress}%` }}></div>
+                      <div
+                        className="h-full bg-primary rounded-full"
+                        style={{ width: `${deck.progress}%` }}
+                      ></div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Tiến độ: {deck.progress}%</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Tiến độ: {deck.progress}% ({deck.knownCount || 0}/
+                      {deck.totalCount || deck.cards.length} thẻ)
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -70,5 +98,5 @@ export default function StudyPage() {
         </div>
       )}
     </main>
-  )
+  );
 }

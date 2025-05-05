@@ -1,52 +1,57 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface Card {
-  id: number
-  front: string
-  back: string
-  phonetic?: string
-  example?: string
-  status?: "known" | "unknown" | "learning"
-  lastReviewed?: string
+  id: number;
+  front: string;
+  back: string;
+  phonetic?: string;
+  example?: string;
+  status?: "known" | "unknown" | "learning";
+  lastReviewed?: string;
 }
 
 interface Deck {
-  id: number
-  name: string
-  description: string
-  cards: Card[]
-  createdAt: string
-  progress?: number
+  id: number;
+  name: string;
+  description: string;
+  cards: Card[];
+  createdAt: string;
+  progress?: number;
 }
 
 interface FlashcardContextType {
-  decks: Deck[]
-  addDeck: (deck: Deck) => void
-  updateDeck: (id: number, updatedDeck: Partial<Deck>) => void
-  removeDeck: (id: number) => void
-  updateCardStatus: (cardId: number, status: "known" | "unknown" | "learning") => void
-  updateDeckProgress: (deckId: number, progress: number) => void
-  importData: (decks: Deck[]) => void
-  clearAllData: () => void
+  decks: Deck[];
+  addDeck: (deck: Deck) => void;
+  updateDeck: (id: number, updatedDeck: Partial<Deck>) => void;
+  removeDeck: (id: number) => void;
+  updateCardStatus: (
+    cardId: number,
+    status: "known" | "unknown" | "learning"
+  ) => void;
+  updateDeckProgress: (deckId: number, progress: number) => void;
+  importData: (decks: Deck[]) => void;
+  clearAllData: () => void;
 }
 
-const FlashcardContext = createContext<FlashcardContextType | undefined>(undefined)
+const FlashcardContext = createContext<FlashcardContextType | undefined>(
+  undefined
+);
 
 export function FlashcardProvider({ children }: { children: React.ReactNode }) {
-  const [decks, setDecks] = useState<Deck[]>([])
+  const [decks, setDecks] = useState<Deck[]>([]);
 
   // Load data from localStorage on initial render
   useEffect(() => {
-    const savedDecks = localStorage.getItem("flashcards-decks")
+    const savedDecks = localStorage.getItem("flashcards-decks");
     if (savedDecks) {
       try {
-        setDecks(JSON.parse(savedDecks))
+        setDecks(JSON.parse(savedDecks));
       } catch (error) {
-        console.error("Error parsing saved decks:", error)
+        console.error("Error parsing saved decks:", error);
       }
     } else {
       // Add sample deck for first-time users
@@ -79,77 +84,115 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
         ],
         createdAt: new Date().toISOString(),
         progress: 0,
-      }
-      setDecks([sampleDeck])
+      };
+      setDecks([sampleDeck]);
     }
-  }, [])
+  }, []);
 
   // Save to localStorage whenever decks change
   useEffect(() => {
-    localStorage.setItem("flashcards-decks", JSON.stringify(decks))
-  }, [decks])
+    localStorage.setItem("flashcards-decks", JSON.stringify(decks));
+  }, [decks]);
 
   const addDeck = (deck: Deck) => {
-    setDecks((prevDecks) => [...prevDecks, deck])
-  }
+    setDecks((prevDecks) => [...prevDecks, deck]);
+  };
 
   const updateDeck = (id: number, updatedDeck: Partial<Deck>) => {
-    setDecks((prevDecks) => prevDecks.map((deck) => (deck.id === id ? { ...deck, ...updatedDeck } : deck)))
-  }
+    setDecks((prevDecks) =>
+      prevDecks.map((deck) =>
+        deck.id === id ? { ...deck, ...updatedDeck } : deck
+      )
+    );
+  };
 
   const removeDeck = (id: number) => {
-    setDecks((prevDecks) => prevDecks.filter((deck) => deck.id !== id))
-  }
+    setDecks((prevDecks) => prevDecks.filter((deck) => deck.id !== id));
+  };
 
-  // Sửa hàm updateCardStatus để đảm bảo cập nhật đúng trạng thái thẻ
-  const updateCardStatus = (cardId: number, status: "known" | "unknown" | "learning") => {
+  // Sửa hàm updateCardStatus để đảm bảo đếm chính xác số thẻ đã thuộc
+  const updateCardStatus = (
+    cardId: number,
+    status: "known" | "unknown" | "learning"
+  ) => {
+    if (!cardId) {
+      console.warn("updateCardStatus called with invalid cardId:", cardId);
+      return;
+    }
+
     setDecks((prevDecks) => {
-      const newDecks = prevDecks.map((deck) => ({
-        ...deck,
-        cards: deck.cards.map((card) => {
+      // Tìm deck chứa thẻ cần cập nhật
+      let updatedDeckId = -1;
+      const newDecks = prevDecks.map((deck) => {
+        const updatedCards = deck.cards.map((card) => {
           if (card.id === cardId) {
-            return { ...card, status, lastReviewed: new Date().toISOString() }
+            updatedDeckId = deck.id;
+            return { ...card, status, lastReviewed: new Date().toISOString() };
           }
-          return card
-        }),
-      }))
+          return card;
+        });
 
-      // Cập nhật tiến độ cho mỗi bộ thẻ
-      return newDecks.map((deck) => {
-        const totalCards = deck.cards.length
-        const knownCards = deck.cards.filter((card) => card.status === "known").length
-        const progress = totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0
-        return {
-          ...deck,
-          progress,
+        if (deck.id === updatedDeckId) {
+          return { ...deck, cards: updatedCards };
         }
-      })
-    })
-  }
+        return deck;
+      });
+
+      // Cập nhật tiến độ cho deck chứa thẻ đã cập nhật
+      return newDecks.map((deck) => {
+        if (deck.id === updatedDeckId) {
+          const totalCards = deck.cards.length;
+          const knownCards = deck.cards.filter(
+            (card) => card.status === "known"
+          ).length;
+          const progress =
+            totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
+          return {
+            ...deck,
+            progress,
+          };
+        }
+        return deck;
+      });
+    });
+  };
 
   // Sửa hàm updateDeckProgress để tính toán chính xác hơn
   const updateDeckProgress = (deckId: number, progress: number) => {
     setDecks((prevDecks) => {
-      // Tìm deck cần cập nhật
-      const deck = prevDecks.find((d) => d.id === deckId)
-      if (!deck) return prevDecks
+      return prevDecks.map((deck) => {
+        if (deck.id === deckId) {
+          // Đếm số thẻ đã thuộc thực tế
+          const totalCards = deck.cards.length;
+          const knownCards = deck.cards.filter(
+            (card) => card.status === "known"
+          ).length;
+          const actualProgress =
+            totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
 
-      // Đếm số thẻ đã thuộc thực tế
-      const totalCards = deck.cards.length
-      const knownCards = deck.cards.filter((card) => card.status === "known").length
-      const actualProgress = totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0
+          console.log(
+            `Deck ${deck.name}: ${knownCards}/${totalCards} thẻ đã thuộc (${actualProgress}%)`
+          );
 
-      return prevDecks.map((deck) => (deck.id === deckId ? { ...deck, progress: actualProgress } : deck))
-    })
-  }
+          return {
+            ...deck,
+            progress: actualProgress,
+            knownCount: knownCards, // Thêm trường này để theo dõi số thẻ đã thuộc
+            totalCount: totalCards, // Thêm trường này để theo dõi tổng số thẻ
+          };
+        }
+        return deck;
+      });
+    });
+  };
 
   const importData = (importedDecks: Deck[]) => {
-    setDecks(importedDecks)
-  }
+    setDecks(importedDecks);
+  };
 
   const clearAllData = () => {
-    setDecks([])
-  }
+    setDecks([]);
+  };
 
   return (
     <FlashcardContext.Provider
@@ -166,13 +209,13 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
     </FlashcardContext.Provider>
-  )
+  );
 }
 
 export function useFlashcards() {
-  const context = useContext(FlashcardContext)
+  const context = useContext(FlashcardContext);
   if (context === undefined) {
-    throw new Error("useFlashcards must be used within a FlashcardProvider")
+    throw new Error("useFlashcards must be used within a FlashcardProvider");
   }
-  return context
+  return context;
 }
