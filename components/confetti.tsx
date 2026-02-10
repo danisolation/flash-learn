@@ -1,98 +1,87 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef } from "react"
 
 interface ConfettiPiece {
   x: number
   y: number
   size: number
   color: string
-  velocity: {
-    x: number
-    y: number
-  }
+  vx: number
+  vy: number
   rotation: number
   rotationSpeed: number
 }
 
+const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#f97316"]
+const PIECE_COUNT = 50
+
 export default function Confetti() {
-  const [pieces, setPieces] = useState<ConfettiPiece[]>([])
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    // Tạo các mảnh confetti
-    const colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#f97316"]
-    const newPieces: ConfettiPiece[] = []
+    const canvas = canvasRef.current
+    if (!canvas) return
 
-    for (let i = 0; i < 100; i++) {
-      newPieces.push({
-        x: Math.random() * window.innerWidth,
-        y: Math.random() * -window.innerHeight,
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+
+    const pieces: ConfettiPiece[] = []
+    for (let i = 0; i < PIECE_COUNT; i++) {
+      pieces.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * -canvas.height,
         size: Math.random() * 10 + 5,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        velocity: {
-          x: (Math.random() - 0.5) * 10,
-          y: Math.random() * 3 + 2,
-        },
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        vx: (Math.random() - 0.5) * 8,
+        vy: Math.random() * 3 + 2,
         rotation: Math.random() * 360,
         rotationSpeed: (Math.random() - 0.5) * 10,
       })
     }
 
-    setPieces(newPieces)
-
-    // Thiết lập animation
     let animationFrameId: number
-    let lastTime = Date.now()
 
     const animate = () => {
-      const currentTime = Date.now()
-      const deltaTime = (currentTime - lastTime) / 1000
-      lastTime = currentTime
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      let alive = 0
 
-      setPieces(
-        (prevPieces) =>
-          prevPieces
-            .map((piece) => ({
-              ...piece,
-              x: piece.x + piece.velocity.x,
-              y: piece.y + piece.velocity.y,
-              rotation: piece.rotation + piece.rotationSpeed,
-              velocity: {
-                x: piece.velocity.x,
-                y: piece.velocity.y + 0.1, // Gravity
-              },
-            }))
-            .filter((piece) => piece.y < window.innerHeight + 100), // Remove pieces that are off-screen
-      )
+      for (const p of pieces) {
+        p.x += p.vx
+        p.y += p.vy
+        p.vy += 0.1
+        p.rotation += p.rotationSpeed
 
-      animationFrameId = requestAnimationFrame(animate)
+        if (p.y > canvas.height + 50) continue
+        alive++
+
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.rotate((p.rotation * Math.PI) / 180)
+        ctx.globalAlpha = 0.8
+        ctx.fillStyle = p.color
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size)
+        ctx.restore()
+      }
+
+      if (alive > 0) {
+        animationFrameId = requestAnimationFrame(animate)
+      }
     }
 
     animationFrameId = requestAnimationFrame(animate)
 
-    // Cleanup
-    return () => {
-      cancelAnimationFrame(animationFrameId)
-    }
+    return () => cancelAnimationFrame(animationFrameId)
   }, [])
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-50">
-      {pieces.map((piece, index) => (
-        <div
-          key={index}
-          className="absolute"
-          style={{
-            left: `${piece.x}px`,
-            top: `${piece.y}px`,
-            width: `${piece.size}px`,
-            height: `${piece.size}px`,
-            backgroundColor: piece.color,
-            transform: `rotate(${piece.rotation}deg)`,
-            opacity: 0.8,
-          }}
-        />
-      ))}
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-50"
+      style={{ width: "100vw", height: "100vh" }}
+    />
   )
 }

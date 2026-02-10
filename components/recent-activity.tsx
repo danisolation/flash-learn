@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { useFlashcards } from "@/components/flashcard-provider"
 import { Card, CardContent } from "@/components/ui/card"
 import { CheckCircle2, Clock, XCircle } from "lucide-react"
@@ -7,8 +8,8 @@ import { CheckCircle2, Clock, XCircle } from "lucide-react"
 export default function RecentActivity() {
   const { decks } = useFlashcards()
 
-  // Tạo danh sách các thẻ đã học gần đây
-  const recentCards = decks
+  // Memoize expensive computation
+  const recentCards = useMemo(() => decks
     .flatMap((deck) =>
       deck.cards
         .filter((card) => card.lastReviewed)
@@ -23,7 +24,7 @@ export default function RecentActivity() {
         })),
     )
     .sort((a, b) => b.lastReviewed.getTime() - a.lastReviewed.getTime())
-    .slice(0, 5)
+    .slice(0, 5), [decks])
 
   if (recentCards.length === 0) {
     return (

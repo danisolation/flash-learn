@@ -1,17 +1,16 @@
 "use client";
 
+import { useMemo } from "react";
 import { useFlashcards } from "@/components/flashcard-provider";
 import DeckCard from "@/components/deck-card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-// Đảm bảo hiển thị tiến độ chính xác trên trang chủ
 export default function DeckList() {
   const { decks } = useFlashcards();
 
-  // Tính toán lại tiến độ cho mỗi bộ thẻ để đảm bảo hiển thị chính xác
-  const decksWithUpdatedProgress = decks.map((deck) => {
+  const decksWithUpdatedProgress = useMemo(() => decks.map((deck) => {
     const totalCards = deck.cards.length;
     const knownCards = deck.cards.filter(
       (card) => card.status === "known"
@@ -19,18 +18,13 @@ export default function DeckList() {
     const progress =
       totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
 
-    // Log để debug
-    console.log(
-      `Deck ${deck.name}: ${knownCards}/${totalCards} thẻ đã thuộc (${progress}%)`
-    );
-
     return {
       ...deck,
       progress,
       knownCount: knownCards,
       totalCount: totalCards,
     };
-  });
+  }), [decks]);
 
   if (decksWithUpdatedProgress.length === 0) {
     return (

@@ -54,7 +54,7 @@ export function WordSuggestion({ onSelect }: WordSuggestionProps) {
 
         // Tìm URL âm thanh
         const phonetics = data[0].phonetics || []
-        const audioPhonetic = phonetics.find((p) => p.audio && p.audio.length > 0)
+        const audioPhonetic = phonetics.find((p: { audio?: string }) => p.audio && p.audio.length > 0)
         setAudioUrl(audioPhonetic?.audio || null)
       }
     } catch (err) {

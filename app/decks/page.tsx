@@ -22,12 +22,18 @@ export default function DecksPage() {
     <main className="container max-w-5xl mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
         <Link href="/">
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            className="hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 transition-all"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
           </Button>
         </Link>
         <Link href="/create">
-          <Button>Tạo bộ thẻ mới</Button>
+          <Button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg transition-all">
+            Tạo bộ thẻ mới
+          </Button>
         </Link>
       </div>
 
@@ -47,7 +53,9 @@ export default function DecksPage() {
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">Không tìm thấy bộ thẻ nào</p>
           <Link href="/create">
-            <Button>Tạo bộ thẻ mới</Button>
+            <Button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg transition-all">
+              Tạo bộ thẻ mới
+            </Button>
           </Link>
         </div>
       ) : (

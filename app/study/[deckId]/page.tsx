@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -33,8 +33,9 @@ import Pronunciation from "@/components/pronunciation";
 export default function StudyDeckPage({
   params,
 }: {
-  params: { deckId: string };
+  params: Promise<{ deckId: string }>;
 }) {
+  const resolvedParams = use(params);
   const router = useRouter();
   const { toast } = useToast();
   const { decks, updateCardStatus, updateDeckProgress } = useFlashcards();
@@ -63,7 +64,7 @@ export default function StudyDeckPage({
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
 
   // Tìm deck theo ID
-  const deckId = Number.parseInt(params.deckId);
+  const deckId = Number.parseInt(resolvedParams.deckId);
   const currentDeck = decks.find((deck) => deck.id === deckId);
 
   // Lấy thẻ từ deck hiện tại
@@ -330,7 +331,7 @@ export default function StudyDeckPage({
       if (!knownCards.includes(currentCardIndex)) {
         setKnownCards((prev) => [...prev, currentCardIndex]);
         if (currentCard && currentCard.id) {
-          updateCardStatus(currentDeck?.id, currentCard.id, "known");
+          updateCardStatus(currentCard.id, "known");
         }
       }
 
@@ -351,7 +352,7 @@ export default function StudyDeckPage({
       if (!knownCards.includes(currentCardIndex)) {
         setKnownCards((prev) => [...prev, currentCardIndex]);
         if (currentCard && currentCard.id) {
-          updateCardStatus(currentDeck?.id, currentCard.id, "known");
+          updateCardStatus(currentCard.id, "known");
         }
       }
 
@@ -375,6 +376,36 @@ export default function StudyDeckPage({
     }
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (studyMode !== "standard") return;
+      
+      switch (e.key) {
+        case " ":
+        case "Enter":
+          e.preventDefault();
+          handleFlipCard();
+          break;
+        case "ArrowLeft":
+          if (currentCardIndex > 0) handlePrevious();
+          break;
+        case "ArrowRight":
+          if (currentCardIndex < cards.length - 1) handleNext();
+          break;
+        case "1":
+          handleUnknown();
+          break;
+        case "2":
+          handleKnown();
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentCardIndex, cards.length, studyMode, isFlipped]);
+
   if (!currentCard) {
     return (
       <div className="container max-w-3xl mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[60vh]">
@@ -383,74 +414,125 @@ export default function StudyDeckPage({
           Hãy tạo một số thẻ trước khi bắt đầu học.
         </p>
         <Link href="/create">
-          <Button>Tạo thẻ mới</Button>
+          <Button className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg transition-all">
+            Tạo thẻ mới
+          </Button>
         </Link>
       </div>
     );
   }
 
   return (
-    <main className="container max-w-3xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       {showConfetti && <Confetti />}
 
-      <div className="flex justify-between items-center mb-6">
-        <Link href="/">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
-          </Button>
-        </Link>
-        <div className="flex gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={toggleAutoFlip}>
-                  <Clock
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      autoFlipEnabled ? "text-primary" : ""
-                    )}
-                  />
-                  {autoFlipEnabled
-                    ? `Tự động (${autoFlipCountdown}s)`
-                    : "Tự động lật"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Tự động lật thẻ sau {autoFlipSeconds} giây</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+      {/* Top Bar */}
+      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b">
+        <div className="container max-w-3xl mx-auto px-4 py-3">
+          <div className="flex justify-between items-center">
+            <Link href="/study">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 transition-all"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+              </Button>
+            </Link>
+            <div className="flex gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant={autoFlipEnabled ? "default" : "outline"} 
+                      size="sm" 
+                      onClick={toggleAutoFlip}
+                      className={autoFlipEnabled ? "bg-primary" : ""}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      {autoFlipEnabled ? `${autoFlipCountdown}s` : "Tự động"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Tự động lật thẻ sau {autoFlipSeconds} giây</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-          <Button variant="outline" size="sm" onClick={shuffleCards}>
-            <Shuffle className="mr-2 h-4 w-4" /> Xáo trộn
-          </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={shuffleCards}
+                className="hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300 dark:hover:bg-purple-900/20 transition-all"
+              >
+                <Shuffle className="mr-2 h-4 w-4" /> Xáo trộn
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <h1 className="text-2xl font-bold">{currentDeck?.name}</h1>
-          <Badge variant="outline" className="text-primary border-primary">
-            {currentCardIndex + 1} / {cards.length}
-          </Badge>
+      <main className="container max-w-3xl mx-auto px-4 py-6">
+        {/* Header with Progress */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <h1 className="text-xl font-bold">{currentDeck?.name}</h1>
+              <p className="text-sm text-muted-foreground">
+                {knownCards.length} / {cards.length} thẻ đã thuộc
+              </p>
+            </div>
+            <Badge variant="secondary" className="text-lg px-4 py-1 bg-primary/10 text-primary font-bold">
+              {currentCardIndex + 1} / {cards.length}
+            </Badge>
+          </div>
+          
+          {/* Enhanced Progress Bar */}
+          <div className="relative">
+            <Progress value={progress} className="h-3" />
+            <div 
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary shadow-lg border-2 border-white dark:border-gray-800 transition-all"
+              style={{ left: `calc(${progress}% - 8px)` }}
+            />
+          </div>
+          
+          {/* Keyboard Shortcuts Hint */}
+          <div className="hidden md:flex items-center justify-center gap-6 mt-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <kbd className="px-2 py-1 rounded bg-muted font-mono">Space</kbd> Lật thẻ
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-2 py-1 rounded bg-muted font-mono">←</kbd> Trước
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-2 py-1 rounded bg-muted font-mono">→</kbd> Tiếp
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-2 py-1 rounded bg-muted font-mono">1</kbd> Chưa thuộc
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-2 py-1 rounded bg-muted font-mono">2</kbd> Đã thuộc
+            </span>
+          </div>
         </div>
-        <Progress value={progress} className="h-2" />
-        <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-          <span>Tiến độ: {Math.round(progress)}%</span>
-          <span>Đã thuộc: {knownCards.length} thẻ</span>
-        </div>
-      </div>
 
-      <Tabs
-        defaultValue="standard"
-        className="mb-6"
-        onValueChange={handleModeChange}
-      >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="standard">Học thẻ</TabsTrigger>
-          <TabsTrigger value="quiz">Nhập nghĩa</TabsTrigger>
-          <TabsTrigger value="choice">Trắc nghiệm</TabsTrigger>
-        </TabsList>
+        {/* Study Mode Tabs */}
+        <Tabs
+          defaultValue="standard"
+          className="mb-6"
+          onValueChange={handleModeChange}
+        >
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="standard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Học thẻ
+            </TabsTrigger>
+            <TabsTrigger value="quiz" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Nhập nghĩa
+            </TabsTrigger>
+            <TabsTrigger value="choice" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Trắc nghiệm
+            </TabsTrigger>
+          </TabsList>
 
         <TabsContent value="standard">
           <div className="flex justify-center mb-8">
@@ -465,9 +547,9 @@ export default function StudyDeckPage({
                   className="relative"
                 >
                   <Card
-                    className={`w-full h-64 sm:h-80 cursor-pointer flex items-center justify-center p-6 transition-transform duration-500 transform-style-3d ${
+                    className={`w-full h-72 sm:h-80 cursor-pointer flex items-center justify-center p-6 transition-all duration-500 transform-style-3d ${
                       isFlipped ? "rotate-y-180" : ""
-                    } shadow-lg hover:shadow-xl`}
+                    } shadow-xl hover:shadow-2xl border-2 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800`}
                     onClick={handleFlipCard}
                   >
                     <div
@@ -475,41 +557,40 @@ export default function StudyDeckPage({
                         isFlipped ? "opacity-0" : "opacity-100"
                       }`}
                     >
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Từ vựng
+                      <div className="absolute top-4 left-4">
+                        <Badge variant="outline" className="text-xs">Từ vựng</Badge>
                       </div>
-                      <div className="text-3xl font-bold text-center mb-2">
+                      <div className="text-3xl sm:text-4xl font-bold text-center mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                         {currentCard.front}
                       </div>
                       {currentCard.phonetic && (
-                        <div className="mt-1 text-muted-foreground flex items-center gap-2">
-                          {currentCard.phonetic}
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <span>{currentCard.phonetic}</span>
                           <Pronunciation text={currentCard.front} />
                         </div>
                       )}
-                      <div className="mt-auto text-sm text-muted-foreground">
-                        Nhấn để lật thẻ
+                      <div className="absolute bottom-4 flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="animate-pulse">Nhấn để xem nghĩa</span>
                       </div>
                     </div>
                     <div
-                      className={`absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-6 ${
+                      className={`absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 rounded-lg ${
                         isFlipped ? "opacity-100" : "opacity-0"
                       }`}
                     >
-                      <div className="text-sm text-muted-foreground mb-2">
-                        Nghĩa
+                      <div className="absolute top-4 left-4">
+                        <Badge variant="outline" className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">Nghĩa</Badge>
                       </div>
-                      <div className="text-2xl font-medium text-center">
+                      <div className="text-2xl sm:text-3xl font-semibold text-center">
                         {currentCard.back}
                       </div>
                       {currentCard.example && (
-                        <div className="mt-4 text-sm italic text-muted-foreground text-center bg-muted/50 p-3 rounded-lg">
-                          "{currentCard.example}"
+                        <div className="mt-4 text-sm italic text-muted-foreground text-center bg-white/50 dark:bg-gray-800/50 p-3 rounded-lg max-w-sm">
+                          <span className="text-primary">"</span>
+                          {currentCard.example}
+                          <span className="text-primary">"</span>
                         </div>
                       )}
-                      <div className="mt-auto text-sm text-muted-foreground">
-                        Nhấn để lật thẻ
-                      </div>
                     </div>
                   </Card>
                 </motion.div>
@@ -517,44 +598,52 @@ export default function StudyDeckPage({
             </div>
           </div>
 
-          <div className="flex justify-between items-center">
+          {/* Action Buttons */}
+          <div className="flex justify-between items-center max-w-md mx-auto">
             <Button
               variant="outline"
               size="icon"
+              className="h-12 w-12 rounded-full"
               onClick={handlePrevious}
               disabled={currentCardIndex === 0}
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-6 w-6" />
               <span className="sr-only">Trước</span>
             </Button>
 
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <Button
-                variant="outline"
-                className="bg-red-50 hover:bg-red-100 border-red-200 text-red-600 hover:text-red-700 dark:bg-red-950/30 dark:hover:bg-red-950/50 dark:border-red-800 dark:text-red-400"
+                size="lg"
+                className="bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-lg shadow-red-500/20 transition-all hover:shadow-xl hover:shadow-red-500/30"
                 onClick={handleUnknown}
               >
-                <X className="mr-2 h-4 w-4" /> Chưa thuộc
+                <X className="mr-2 h-5 w-5" /> Chưa thuộc
               </Button>
               <Button
-                variant="outline"
-                className="bg-green-50 hover:bg-green-100 border-green-200 text-green-600 hover:text-green-700 dark:bg-green-950/30 dark:hover:bg-green-950/50 dark:border-green-800 dark:text-green-400"
+                size="lg"
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-lg shadow-green-500/20 transition-all hover:shadow-xl hover:shadow-green-500/30"
                 onClick={handleKnown}
               >
-                <Check className="mr-2 h-4 w-4" /> Đã thuộc
+                <Check className="mr-2 h-5 w-5" /> Đã thuộc
               </Button>
             </div>
 
             <Button
               variant="outline"
               size="icon"
+              className="h-12 w-12 rounded-full"
               onClick={handleNext}
               disabled={currentCardIndex === cards.length - 1}
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-6 w-6" />
               <span className="sr-only">Tiếp</span>
             </Button>
           </div>
+          
+          {/* Swipe hint for mobile */}
+          <p className="text-center text-xs text-muted-foreground mt-4 md:hidden">
+            Vuốt trái/phải để điều hướng
+          </p>
         </TabsContent>
 
         <TabsContent value="quiz">
@@ -628,7 +717,7 @@ export default function StudyDeckPage({
 
                         {quizResult === null && (
                           <Button
-                            className="w-full"
+                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg transition-all"
                             onClick={handleQuizSubmit}
                             disabled={!quizAnswer.trim()}
                           >
@@ -638,7 +727,7 @@ export default function StudyDeckPage({
 
                         {quizResult === "incorrect" && (
                           <Button
-                            className="w-full"
+                            className="w-full bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md hover:shadow-lg transition-all"
                             onClick={() => {
                               setQuizAnswer("");
                               setQuizResult(null);
@@ -775,5 +864,6 @@ export default function StudyDeckPage({
         </TabsContent>
       </Tabs>
     </main>
+    </div>
   );
 }

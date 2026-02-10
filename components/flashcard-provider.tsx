@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from "react";
 
 interface Card {
   id: number;
@@ -81,6 +81,41 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
             phonetic: "/ˈθæŋk juː/",
             example: "Thank you for your help.",
           },
+          {
+            id: 4,
+            front: "Sorry",
+            back: "Xin lỗi",
+            phonetic: "/ˈsɒri/",
+            example: "Sorry, I didn't mean to do that.",
+          },
+          {
+            id: 5,
+            front: "Please",
+            back: "Làm ơn",
+            phonetic: "/pliːz/",
+            example: "Please help me with this.",
+          },
+          {
+            id: 6,
+            front: "Yes",
+            back: "Vâng / Có",
+            phonetic: "/jes/",
+            example: "Yes, I understand.",
+          },
+          {
+            id: 7,
+            front: "No",
+            back: "Không",
+            phonetic: "/nəʊ/",
+            example: "No, thank you.",
+          },
+          {
+            id: 8,
+            front: "Good morning",
+            back: "Chào buổi sáng",
+            phonetic: "/ɡʊd ˈmɔːnɪŋ/",
+            example: "Good morning, everyone!",
+          },
         ],
         createdAt: new Date().toISOString(),
         progress: 0,
@@ -89,29 +124,34 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Save to localStorage whenever decks change
+  // Save to localStorage whenever decks change, skip initial empty render
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     localStorage.setItem("flashcards-decks", JSON.stringify(decks));
   }, [decks]);
 
-  const addDeck = (deck: Deck) => {
+  const addDeck = useCallback((deck: Deck) => {
     setDecks((prevDecks) => [...prevDecks, deck]);
-  };
+  }, []);
 
-  const updateDeck = (id: number, updatedDeck: Partial<Deck>) => {
+  const updateDeck = useCallback((id: number, updatedDeck: Partial<Deck>) => {
     setDecks((prevDecks) =>
       prevDecks.map((deck) =>
         deck.id === id ? { ...deck, ...updatedDeck } : deck
       )
     );
-  };
+  }, []);
 
-  const removeDeck = (id: number) => {
+  const removeDeck = useCallback((id: number) => {
     setDecks((prevDecks) => prevDecks.filter((deck) => deck.id !== id));
-  };
+  }, []);
 
   // Sửa hàm updateCardStatus để đảm bảo đếm chính xác số thẻ đã thuộc
-  const updateCardStatus = (
+  const updateCardStatus = useCallback((
     cardId: number,
     status: "known" | "unknown" | "learning"
   ) => {
@@ -155,14 +195,13 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
         return deck;
       });
     });
-  };
+  }, []);
 
   // Sửa hàm updateDeckProgress để tính toán chính xác hơn
-  const updateDeckProgress = (deckId: number, progress: number) => {
+  const updateDeckProgress = useCallback((deckId: number, progress: number) => {
     setDecks((prevDecks) => {
       return prevDecks.map((deck) => {
         if (deck.id === deckId) {
-          // Đếm số thẻ đã thuộc thực tế
           const totalCards = deck.cards.length;
           const knownCards = deck.cards.filter(
             (card) => card.status === "known"
@@ -170,43 +209,39 @@ export function FlashcardProvider({ children }: { children: React.ReactNode }) {
           const actualProgress =
             totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
 
-          console.log(
-            `Deck ${deck.name}: ${knownCards}/${totalCards} thẻ đã thuộc (${actualProgress}%)`
-          );
-
           return {
             ...deck,
             progress: actualProgress,
-            knownCount: knownCards, // Thêm trường này để theo dõi số thẻ đã thuộc
-            totalCount: totalCards, // Thêm trường này để theo dõi tổng số thẻ
+            knownCount: knownCards,
+            totalCount: totalCards,
           };
         }
         return deck;
       });
     });
-  };
+  }, []);
 
-  const importData = (importedDecks: Deck[]) => {
+  const importData = useCallback((importedDecks: Deck[]) => {
     setDecks(importedDecks);
-  };
+  }, []);
 
-  const clearAllData = () => {
+  const clearAllData = useCallback(() => {
     setDecks([]);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    decks,
+    addDeck,
+    updateDeck,
+    removeDeck,
+    updateCardStatus,
+    updateDeckProgress,
+    importData,
+    clearAllData,
+  }), [decks, addDeck, updateDeck, removeDeck, updateCardStatus, updateDeckProgress, importData, clearAllData]);
 
   return (
-    <FlashcardContext.Provider
-      value={{
-        decks,
-        addDeck,
-        updateDeck,
-        removeDeck,
-        updateCardStatus,
-        updateDeckProgress,
-        importData,
-        clearAllData,
-      }}
-    >
+    <FlashcardContext.Provider value={contextValue}>
       {children}
     </FlashcardContext.Provider>
   );

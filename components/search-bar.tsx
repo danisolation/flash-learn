@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -23,39 +23,49 @@ interface SearchResult {
 export default function SearchBar() {
   const { decks } = useFlashcards()
   const [query, setQuery] = useState("")
-  const [results, setResults] = useState<SearchResult[]>([])
+  const [debouncedQuery, setDebouncedQuery] = useState("")
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null)
+
+  // Debounce search query
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedQuery(query)
+    }, 300)
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    }
+  }, [query])
+
+  const results = useMemo(() => {
+    if (debouncedQuery.trim().length < 2) return []
+    const q = debouncedQuery.toLowerCase()
+    const searchResults: SearchResult[] = []
+    for (const deck of decks) {
+      for (const card of deck.cards) {
+        if (
+          card.front.toLowerCase().includes(q) ||
+          card.back.toLowerCase().includes(q)
+        ) {
+          searchResults.push({
+            deckId: deck.id,
+            deckName: deck.name,
+            cardId: card.id,
+            front: card.front,
+            back: card.back,
+            phonetic: card.phonetic,
+          })
+        }
+      }
+    }
+    return searchResults
+  }, [debouncedQuery, decks])
 
   useEffect(() => {
-    if (query.trim().length >= 2) {
-      const searchResults: SearchResult[] = []
-
-      decks.forEach((deck) => {
-        deck.cards.forEach((card) => {
-          if (
-            card.front.toLowerCase().includes(query.toLowerCase()) ||
-            card.back.toLowerCase().includes(query.toLowerCase())
-          ) {
-            searchResults.push({
-              deckId: deck.id,
-              deckName: deck.name,
-              cardId: card.id,
-              front: card.front,
-              back: card.back,
-              phonetic: card.phonetic,
-            })
-          }
-        })
-      })
-
-      setResults(searchResults)
-      setShowResults(true)
-    } else {
-      setResults([])
-      setShowResults(false)
-    }
-  }, [query, decks])
+    setShowResults(results.length > 0 || debouncedQuery.trim().length >= 2)
+  }, [results, debouncedQuery])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,7 +74,7 @@ export default function SearchBar() {
 
   const clearSearch = () => {
     setQuery("")
-    setResults([])
+    setDebouncedQuery("")
     setShowResults(false)
   }
 

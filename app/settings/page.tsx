@@ -88,42 +88,52 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="container max-w-3xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <Link href="/">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+    <div className="container max-w-3xl mx-auto px-4 py-6 md:py-8">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Link href="/" className="md:hidden">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
+        <div>
+          <h1 className="text-2xl font-bold">Cài đặt</h1>
+          <p className="text-muted-foreground text-sm">Tùy chỉnh ứng dụng theo ý bạn</p>
+        </div>
       </div>
 
-      <h1 className="text-2xl font-bold mb-6">Cài đặt</h1>
-
       <div className="space-y-6">
-        <Card>
+        {/* Appearance Card */}
+        <Card className="overflow-hidden">
+          <div className="h-1 w-full bg-gradient-to-r from-purple-400 to-pink-500" />
           <CardHeader>
-            <CardTitle>Giao diện</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                {theme === "dark" ? <Moon className="h-4 w-4 text-purple-600" /> : <Sun className="h-4 w-4 text-purple-600" />}
+              </div>
+              Giao diện
+            </CardTitle>
             <CardDescription>Tùy chỉnh giao diện ứng dụng</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
               <div className="space-y-0.5">
-                <Label htmlFor="theme-toggle">Chế độ tối</Label>
+                <Label htmlFor="theme-toggle" className="font-medium">Chế độ tối</Label>
                 <p className="text-sm text-muted-foreground">Thay đổi giữa chế độ sáng và tối</p>
               </div>
               <div className="flex items-center space-x-2">
-                <Sun className="h-4 w-4" />
+                <Sun className="h-4 w-4 text-muted-foreground" />
                 <Switch
                   id="theme-toggle"
                   checked={theme === "dark"}
                   onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
                 />
-                <Moon className="h-4 w-4" />
+                <Moon className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
               <div className="space-y-0.5">
-                <Label htmlFor="phonetic-toggle">Hiển thị phiên âm</Label>
+                <Label htmlFor="phonetic-toggle" className="font-medium">Hiển thị phiên âm</Label>
                 <p className="text-sm text-muted-foreground">Hiển thị phiên âm trên thẻ</p>
               </div>
               <Switch id="phonetic-toggle" checked={showPhonetic} onCheckedChange={setShowPhonetic} />
@@ -131,15 +141,22 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Learning Card */}
+        <Card className="overflow-hidden">
+          <div className="h-1 w-full bg-gradient-to-r from-blue-400 to-cyan-500" />
           <CardHeader>
-            <CardTitle>Học tập</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Download className="h-4 w-4 text-blue-600" />
+              </div>
+              Học tập
+            </CardTitle>
             <CardDescription>Tùy chỉnh trải nghiệm học tập</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
               <div className="space-y-0.5">
-                <Label htmlFor="auto-flip-toggle">Tự động lật thẻ</Label>
+                <Label htmlFor="auto-flip-toggle" className="font-medium">Tự động lật thẻ</Label>
                 <p className="text-sm text-muted-foreground">Tự động lật thẻ sau một khoảng thời gian</p>
               </div>
               <Switch id="auto-flip-toggle" checked={autoFlip} onCheckedChange={setAutoFlip} />
@@ -147,36 +164,51 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        {/* Data Management Card */}
+        <Card className="overflow-hidden">
+          <div className="h-1 w-full bg-gradient-to-r from-green-400 to-emerald-500" />
           <CardHeader>
-            <CardTitle>Dữ liệu</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                <Upload className="h-4 w-4 text-green-600" />
+              </div>
+              Dữ liệu
+            </CardTitle>
             <CardDescription>Quản lý dữ liệu của bạn</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-col space-y-2">
-              <Button variant="outline" onClick={handleExportData}>
-                <Download className="mr-2 h-4 w-4" /> Xuất dữ liệu
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button 
+              variant="outline" 
+              onClick={handleExportData} 
+              className="h-auto py-3 flex-col gap-1 hover:bg-green-50 hover:text-green-600 hover:border-green-300 dark:hover:bg-green-900/20 transition-all"
+            >
+                <Download className="h-5 w-5" />
+                <span>Xuất dữ liệu</span>
+                <span className="text-xs text-muted-foreground font-normal">Tải xuống bản sao lưu</span>
               </Button>
-              <p className="text-xs text-muted-foreground">Tải xuống tất cả bộ thẻ và dữ liệu học tập của bạn</p>
-            </div>
-            <div className="flex flex-col space-y-2">
-              <div className="flex items-center">
+              <div>
                 <input type="file" id="import-file" className="hidden" accept=".json" onChange={handleImportData} />
-                <label htmlFor="import-file" className="w-full">
-                  <Button variant="outline" className="w-full" asChild>
+                <label htmlFor="import-file" className="w-full cursor-pointer">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-auto py-3 flex-col gap-1 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300 dark:hover:bg-blue-900/20 transition-all" 
+                    asChild
+                  >
                     <span>
-                      <Upload className="mr-2 h-4 w-4" /> Nhập dữ liệu
+                      <Upload className="h-5 w-5" />
+                      <span>Nhập dữ liệu</span>
+                      <span className="text-xs text-muted-foreground font-normal">Khôi phục từ bản sao lưu</span>
                     </span>
                   </Button>
                 </label>
               </div>
-              <p className="text-xs text-muted-foreground">Nhập dữ liệu từ tệp sao lưu</p>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="border-t bg-destructive/5">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
+                <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10">
                   <Trash2 className="mr-2 h-4 w-4" /> Xóa tất cả dữ liệu
                 </Button>
               </AlertDialogTrigger>
@@ -190,13 +222,24 @@ export default function SettingsPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleClearData}>Xóa tất cả</AlertDialogAction>
+                  <AlertDialogAction onClick={handleClearData} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Xóa tất cả
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </CardFooter>
         </Card>
+
+        {/* App Info */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-4 text-center text-sm text-muted-foreground">
+            <p className="font-medium text-foreground mb-1">FlashLearn v2.0</p>
+            <p>Ứng dụng học từ vựng tiếng Anh thông minh</p>
+            <p className="mt-2">Made with ❤️ for learners</p>
+          </CardContent>
+        </Card>
       </div>
-    </main>
+    </div>
   )
 }
