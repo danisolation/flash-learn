@@ -1,0 +1,20 @@
+{
+  "name": "FlashLearn - Ứng dụng học tiếng Anh thông minh",
+  "short_name": "FlashLearn",
+  "description": "Ứng dụng flash card thông minh với spaced repetition, gamification, và AI hỗ trợ học tiếng Anh hiệu quả",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait",
+  "lang": "vi",
+  "categories": ["education"],
+  "icons": [
+    {
+      "src": "/placeholder-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
